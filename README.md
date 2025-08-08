@@ -4,6 +4,14 @@ Overview of the `.3GM` model format.
 - [Architecture](https://github.com/3D-GM/Model/wiki/Architecture)
 - [Format Specification](https://github.com/3D-GM/Model/wiki/Format-Specification.md)
 
+## Progress
+
+> Format analysis&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;███████████████░░░░░░░░░░░░░░░   50%
+> 
+> Format specification&emsp;&emsp;&emsp;&emsp;███████████████░░░░░░░░░░░░░░░   50%
+> 
+> Implementation&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;███████████████░░░░░░░░░░░░░░░   50%
+
 ## Examples
 - [Ship (Easy)](https://github.com/3D-GM/Model/tree/main/examples/ship_detailled)
 - [Ship (Detailled)](https://github.com/3D-GM/Model/tree/main/examples/ship_detailled)
