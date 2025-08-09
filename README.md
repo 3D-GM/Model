@@ -1,5 +1,5 @@
 # Model
-Overview of the `.3GM` model format.
+Overview of the 3D Geometry Model (`.3GM`) format.
 
 - [Architecture](https://github.com/3D-GM/Model/wiki/Architecture)
 - [Format Specification](https://github.com/3D-GM/Model/wiki/Format-Specification.md)
