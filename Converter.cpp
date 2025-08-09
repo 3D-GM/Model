@@ -632,7 +632,8 @@ private:
                 std::cout << std::endl;
             }
             
-            CreateSurfacesFromParameters(surfaceParams, chunkType, faces, vertices);
+            // NEW: Process as primitive geometry data instead of surface parameters
+            ProcessPrimitiveGeometry(surfaceParams, chunkType, faces, vertices.size());
             debugCount++;
         }
         
@@ -653,10 +654,96 @@ private:
                 surfaceParams.push_back(param);
             }
             
-            CreateSurfacesFromParameters(surfaceParams, chunkType, faces, vertices);
+            // NEW: Process as primitive geometry data instead of surface parameters
+            ProcessPrimitiveGeometry(surfaceParams, chunkType, faces, vertices.size());
         }
         
-        std::cout << "Generated " << faces.size() << " faces from Line chunk (original system)" << std::endl;
+        std::cout << "Generated " << faces.size() << " faces from Line chunk (corrected primitive system)" << std::endl;
+    }
+    
+    void ProcessPrimitiveGeometry(const std::vector<uint16_t>& geometryData, uint16_t primitiveType, 
+                                 std::vector<Triangle>& faces, size_t vertexCount) {
+        if (geometryData.empty() || vertexCount == 0) return;
+        
+        std::cout << "Processing primitive type 0x" << std::hex << primitiveType << std::dec 
+                 << " with " << geometryData.size() << " geometry elements" << std::endl;
+        
+        // Handle different primitive types based on RFC specification
+        switch (primitiveType) {
+            case 0x470E: // 18190 - Quad Processed (from RFC: 18189->18190 conversion)
+                ProcessQuadPrimitive(geometryData, faces, vertexCount);
+                break;
+                
+            case 0x6F2B: // 28427 - Line Strip (from RFC: special line primitive)
+            case 0x470D: // 18189 - Original Quad Input 
+                ProcessQuadPrimitive(geometryData, faces, vertexCount);
+                break;
+                
+            case 0x1:    // Simple geometry element 
+                ProcessSimpleElement(geometryData, faces, vertexCount);
+                break;
+                
+            default:
+                // Fallback: treat as indexed triangle/quad data
+                ProcessIndexedPrimitive(geometryData, faces, vertexCount);
+                break;
+        }
+    }
+    
+    void ProcessQuadPrimitive(const std::vector<uint16_t>& indices, std::vector<Triangle>& faces, size_t vertexCount) {
+        std::cout << "  Processing as Quad primitive with indices: ";
+        for (size_t i = 0; i < std::min((size_t)6, indices.size()); i++) {
+            std::cout << indices[i] << " ";
+        }
+        std::cout << std::endl;
+        
+        if (indices.size() >= 4) {
+            // Take first 4 elements as vertex indices for a quad
+            uint16_t v0 = indices[0] % vertexCount;
+            uint16_t v1 = indices[1] % vertexCount; 
+            uint16_t v2 = indices[2] % vertexCount;
+            uint16_t v3 = indices[3] % vertexCount;
+            
+            // Create quad as two triangles with consistent winding
+            if (v0 != v1 && v1 != v2 && v2 != v3 && v0 != v3) {
+                faces.push_back(Triangle(v0, v2, v1)); // First triangle
+                faces.push_back(Triangle(v0, v3, v2)); // Second triangle
+                
+                std::cout << "    Created quad: (" << v0 << "," << v1 << "," << v2 << "," << v3 << ") -> "
+                         << "Triangle(" << v0 << "," << v2 << "," << v1 << ") + "
+                         << "Triangle(" << v0 << "," << v3 << "," << v2 << ")" << std::endl;
+            }
+        }
+        
+        // Handle additional geometry data if present
+        if (indices.size() > 4) {
+            ProcessIndexedPrimitive(std::vector<uint16_t>(indices.begin() + 4, indices.end()), faces, vertexCount);
+        }
+    }
+    
+    void ProcessSimpleElement(const std::vector<uint16_t>& elements, std::vector<Triangle>& faces, size_t vertexCount) {
+        std::cout << "  Processing simple element with " << elements.size() << " parameters" << std::endl;
+        
+        // Simple elements might be material/texture parameters, not geometry
+        // For now, just log them without creating faces
+        for (size_t i = 0; i < elements.size(); i++) {
+            std::cout << "    Element[" << i << "] = " << elements[i] << std::endl;
+        }
+    }
+    
+    void ProcessIndexedPrimitive(const std::vector<uint16_t>& indices, std::vector<Triangle>& faces, size_t vertexCount) {
+        std::cout << "  Processing indexed primitive with " << indices.size() << " indices" << std::endl;
+        
+        // Create triangles from index data
+        for (size_t i = 0; i + 2 < indices.size(); i += 3) {
+            uint16_t v0 = indices[i] % vertexCount;
+            uint16_t v1 = indices[i + 1] % vertexCount;
+            uint16_t v2 = indices[i + 2] % vertexCount;
+            
+            if (v0 != v1 && v1 != v2 && v0 != v2) {
+                faces.push_back(Triangle(v0, v2, v1)); // Consistent winding
+            }
+        }
     }
     
     void CreateBoxFaces(std::vector<Triangle>& faces, size_t vertexCount) {
